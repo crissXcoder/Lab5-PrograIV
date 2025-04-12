@@ -1,35 +1,87 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import TaskForm from './components/TaskForm';
+import TaskList from './components/TaskList';
+import { Task } from './types';
+import { generateId, saveTasks, loadTasks, sortTasks } from './utils';
+import './styles/App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+const App: React.FC = () => {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Cargar tareas desde localStorage al iniciar
+  useEffect(() => {
+    if (!isInitialized) {
+      const savedTasks = loadTasks();
+      setTasks(savedTasks);
+      setIsInitialized(true);
+    }
+  }, [isInitialized]);
+
+  // Guardar tareas en localStorage cuando cambien
+  useEffect(() => {
+    if (isInitialized) {
+      saveTasks(tasks);
+    }
+  }, [tasks, isInitialized]);
+
+  // Añadir nueva tarea
+  const handleAddTask = (title: string, description: string, subject: string, deadline: string) => {
+    const newTask: Task = {
+      id: generateId(),
+      title,
+      description,
+      subject,
+      deadline,
+      completed: false
+    };
+
+    setTasks(prevTasks => sortTasks([...prevTasks, newTask]));
+  };
+
+  // Marcar tarea como completada
+  const handleCompleteTask = (id: string) => {
+    setTasks(prevTasks => 
+      sortTasks(prevTasks.map(task => 
+        task.id === id 
+          ? { ...task, completed: true, completedAt: new Date().toISOString() } 
+          : task
+      ))
+    );
+  };
+
+  // Eliminar tarea
+  const handleDeleteTask = (id: string) => {
+    setTasks(prevTasks => prevTasks.filter(task => task.id !== id));
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div className="App">
+      <header>
+        <div className="logo-container">
+          <span className="app-icon">📚</span>
+          <h1>
+            Gestor de Tareas Educativo
+            <span className="subtitle">Organiza tus tareas escolares de manera eficiente</span>
+          </h1>
+        </div>
+      </header>
 
-export default App
+      <main>
+        <TaskForm onAddTask={handleAddTask} />
+        <TaskList 
+          tasks={tasks} 
+          onCompleteTask={handleCompleteTask} 
+          onDeleteTask={handleDeleteTask}
+        />
+      </main>
+
+      <footer>
+        <p>2025 Gestor de Tareas Educativo | Desarrollado con ❤️ para estudiantes</p>
+        <p>© By Criss & Danny</p>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
